@@ -1,0 +1,33 @@
+{
+    "files.associations": {
+        "stm32f1xx_hal.h": "c",
+        "w5500.h": "c",
+        "spi.h": "c",
+        "gpio.h": "c",
+        "main.h": "c",
+        "socket.h": "c",
+        "wizchip_conf.h": "c",
+        "stdint.h": "c",
+        "stdio.h": "c",
+        "usart.h": "c",
+        "unistd.h": "c",
+        "flash.h": "c",
+        "stm32f1xx_hal_conf.h": "c",
+        "stm32f1xx_hal_flash.h": "c",
+        "clib.h": "c",
+        "net.h": "c",
+        "interaction.h": "c",
+        "relay.h": "c",
+        "control.h": "c",
+        "mqtt.h": "c",
+        "mqttpacket.h": "c",
+        "at.h": "c"
+    },
+    "commentTranslate.hover.concise": true,
+    "commentTranslate.hover.string": true,
+    "commentTranslate.hover.nearShow": true,
+    "commentTranslate.multiLineMerge": true,
+    "commentTranslate.targetLanguage": "zh-CN",
+    "commentTranslate.source": "Google",
+    "commentTranslate.maxTranslationLength": 10000
+}

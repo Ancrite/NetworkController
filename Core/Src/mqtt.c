@@ -119,27 +119,7 @@ void MQTT_Connect(void)
                 CONNECT_FLAG = 1;
                 printf("==== connect successed!! ====");
             }
-            /* 订阅 */
-            else if (0 == SUB_FLAG) {
-                printf("subscribing...\r\n");
-                memset(msgbuf, 0, sizeof(msgbuf));
 
-                /*MQTT拼接订阅报文*/
-                make_sub_msg(topic, msgbuf, sizeof(msgbuf));
-                send(MQTTSOC, msgbuf, sizeof(msgbuf));// 接收到数据后再回给服务器，完成数据回环
-
-                HAL_Delay(2000);
-                if ((len = getSn_RX_RSR(0)) == 0) {
-                    break;
-                }
-                recv(MQTTSOC, msgbuf, len);
-                if (mqtt_decode_msg(msgbuf) != SUBACK) { //判断是不是SUBACK
-                    printf("subscribe failed.. waiting retry.\r\n");
-                    break;
-                }
-                SUB_FLAG = 1;
-                printf("==== subscribe successed!! ====");
-            }
             /* 保活 */
             else {
                 if (count > 10000) {
@@ -173,5 +153,22 @@ void MQTT_Connect(void)
 
 void MQTT_Subscribe()
 {
+    if (0 == SUB_FLAG) {
+        printf("subscribing...\r\n");
+        memset(msgbuf, 0, sizeof(msgbuf));
 
+        /*MQTT拼接订阅报文*/
+        make_sub_msg(topic, msgbuf, sizeof(msgbuf));
+        send(MQTTSOC, msgbuf, sizeof(msgbuf));
+
+        HAL_Delay(2000);
+        if ((getSn_RX_RSR(0)) == 0) {
+
+        }
+        if (mqtt_decode_msg(msgbuf) != SUBACK) { //判断是不是SUBACK
+            printf("subscribe failed.. waiting retry.\r\n");
+        }
+        SUB_FLAG = 1;
+        printf("==== subscribe successed!! ====");
+            }
 }

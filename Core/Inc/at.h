@@ -16,15 +16,15 @@ typedef enum
     AT_CMD_TX_POWER,     /* 设置发送功率 */
 
     AT_END
-}AT_Cmd;
+}AT_Command;
 
-typedef const char* (*pFunc)(unsigned char* ptr, unsigned char len);
+typedef const char* (*ATCallback)(unsigned char* ptr, unsigned char len);
 
 typedef struct
 {
-    AT_Cmd cmd;          /* 指令序号 */
+    AT_Command  cmd;     /* 指令序号 */
     const char* str;     /* 指令内容 */
-    pFunc  handle;       /* 指令执行 */
+    ATCallback  handle;  /* 指令执行 */
 }AT_CmdTypeDef;
 
 const char* AT_CMD_Parse(unsigned char* p, unsigned int len);

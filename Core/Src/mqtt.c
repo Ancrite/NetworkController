@@ -2,7 +2,9 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include "tim.h"
 #include "mqtt.h"
+#include "at.h"
 #include "socket.h"
 #include "MQTTPacket.h"
 #include "StackTrace.h"
@@ -14,22 +16,10 @@ uint8_t  msgbuf[1024];
 
 uint8_t CONNECT_FLAG = 0;
 uint8_t SUB_FLAG = 0;
-char ser_cmd[240];
-
-unsigned char dup;
-int qos;
-unsigned char retained;
-unsigned short mssageid;
-int payloadlen_in;
-unsigned char* payload_in;
 MQTTString receivedTopic;
-char topic[100] = { "/TKKMt4nMF8U/MQTT1/mqtt" };//设置发布订阅主题
-char new_topic[100];
 int count = 0;
-char rebuf[1024];
 
-/*****************拼接连接报文*****************/
-void make_con_msg(char* clientID, int keepalive, uint8_t cleansession, char* username, char* password, unsigned char* buf, int buflen)
+static void make_con_msg(char* clientID, int keepalive, uint8_t cleansession, char* username, char* password, unsigned char* buf, int buflen)
 {
     MQTTPacket_connectData data = MQTTPacket_connectData_initializer;
     data.clientID.cstring = clientID;
@@ -37,12 +27,11 @@ void make_con_msg(char* clientID, int keepalive, uint8_t cleansession, char* use
     data.cleansession = cleansession;
     data.username.cstring = username;
     data.password.cstring = password;
-    MQTTSerialize_connect(buf, buflen, &data);//构造链接报文
+    MQTTSerialize_connect(buf, buflen, &data);
     return;
 }
 
-/*****************拼接订阅报文*****************/
-void make_sub_msg(char* Topic, unsigned char* msgbuf, int buflen)
+static void make_sub_msg(char* Topic, unsigned char* msgbuf, int buflen)
 {
     int msgid = 1;
     int req_qos = 0;
@@ -55,8 +44,7 @@ void make_sub_msg(char* Topic, unsigned char* msgbuf, int buflen)
     return;
 }
 
-/*****************拼接发布报文*****************/
-void make_pub_msg(char* Topic, unsigned char* msgbuf, int buflen, char* msg)
+static void make_pub_msg(char* Topic, unsigned char* msgbuf, int buflen, char* msg)
 {
     unsigned char topic[100];
     int msglen = strlen(msg);
@@ -68,14 +56,12 @@ void make_pub_msg(char* Topic, unsigned char* msgbuf, int buflen, char* msg)
     return;
 }
 
-/*****************拼接PING报文*****************/
-int  make_ping_msg(unsigned char* buf, int buflen)
+static int make_ping_msg(unsigned char* buf, int buflen)
 {
     return MQTTSerialize_pingreq(buf, buflen);
 }
 
-/*****************解析收到的ACK报文*****************/
-int mqtt_decode_msg(unsigned char* buf)
+static int mqtt_decode_msg(unsigned char* buf)
 {
     int rc = -1;
     MQTTHeader header = { 0 };
@@ -83,92 +69,80 @@ int mqtt_decode_msg(unsigned char* buf)
     rc = header.bits.type;
     return rc;
 }
-
-void MQTT_Connect(void)
+static int mqtt_wait_ack(mqtt_client_t* mqtt_client, int ack_type, TIM_HandleTypeDef* timer, uint16_t timeout)
 {
-    int len;
-    switch (getSn_SR(MQTTSOC))                      // 获取socket0的状态
-    {
-    case SOCK_INIT:                                 // Socket处于初始化完成(打开)状态
-        connect(MQTTSOC, server_ip, server_port);   // 配置Sn_CR为CONNECT，并向TCP服务器发出连接请求
-        break;
-    case SOCK_ESTABLISHED:                          // Socket处于连接建立状态
-        if (getSn_IR(MQTTSOC) & Sn_IR_CON) {
-            setSn_IR(MQTTSOC, Sn_IR_CON);           // Sn_IR的CON位置1，通知W5500连接已建立
-        }
-        memset(msgbuf, 0, sizeof(msgbuf));
-        if ((len = getSn_RX_RSR(MQTTSOC)) == 0) {
-            /* 连接 */
-            if (0 == CONNECT_FLAG) {
-                printf("connecting...\r\n");
-
-                /*MQTT拼接连接报文*/
-                make_con_msg("NetCtrlClient", 180, 1, NULL, NULL, msgbuf, sizeof(msgbuf));
-                send(MQTTSOC, msgbuf, sizeof(msgbuf));
-
-                HAL_Delay(2000);
-                if ((len = getSn_RX_RSR(0)) == 0) {
-                    break;
-                }
-
-                recv(MQTTSOC, msgbuf, len);
-                if (mqtt_decode_msg(msgbuf) != CONNACK) {//判断是不是CONNACK
-                    printf("connect failed.. waiting retry.\r\n");
-                    break;
-                }
-                CONNECT_FLAG = 1;
-                printf("==== connect successed!! ====");
+    int rc = MQTT_FAILED_ERROR;
+    HAL_TIM_Base_Start_IT(timer);
+    while (count <= timeout) {
+        if (getSn_RX_RSR(mqtt_client->mqtt_sn)) {
+            recv(mqtt_client->mqtt_sn, mqtt_client->mqtt_read_buf, 1024);
+            if (mqtt_decode_msg(mqtt_client->mqtt_read_buf) == ack_type) {
+                rc = MQTT_SUCCESS;
+                break;
             }
-
-            /* 保活 */
             else {
-                if (count > 10000) {
-                    count = 0;
-                    make_ping_msg(msgbuf, sizeof(msgbuf));
-                    send(MQTTSOC, msgbuf, sizeof(msgbuf));
-
-                    while ((len = getSn_RX_RSR(0)) == 0) {
-                        printf("wait pingresponse");
-                    }
-                    recv(0, msgbuf, len);
-                    if (mqtt_decode_msg(msgbuf) != PINGRESP) {
-                        MQTTSerialize_disconnect(msgbuf, sizeof(msgbuf));
-                        send(MQTTSOC, msgbuf, sizeof(msgbuf));
-                        CONNECT_FLAG = 0;
-                        SUB_FLAG = 0;
-                        break;
-                    }
-                }
+                rc = MQTT_PUBLISH_ACK_TYPE_ERROR;
             }
         }
-        break;
-    case SOCK_CLOSE_WAIT:                           // Socket处于等待关闭状态
-        close(MQTTSOC);                                   // 关闭Socket0
-        break;
-    case SOCK_CLOSED:                               // Socket处于关闭状态
-        socket(MQTTSOC, Sn_MR_TCP, local_port, Sn_MR_ND); // 打开Socket0，并配置为TCP无延时模式，打开一个本地端口
-        break;
+        else {
+            rc = MQTT_PUBLISH_ACK_PACKET_ERROR;
+        }
     }
+    HAL_TIM_Base_Stop_IT(timer);
+    count = 0;
+    return rc;
 }
 
-void MQTT_Subscribe()
+/******************* API *******************/
+void MQTT_Init(mqtt_client_t* mqtt_client)
 {
-    if (0 == SUB_FLAG) {
-        printf("subscribing...\r\n");
-        memset(msgbuf, 0, sizeof(msgbuf));
+    // 打开Socket0，并配置为TCP无延时模式，打开一个本地端口
+    socket(mqtt_client->mqtt_sn, Sn_MR_TCP, local_port, Sn_MR_ND);
 
-        /*MQTT拼接订阅报文*/
-        make_sub_msg(topic, msgbuf, sizeof(msgbuf));
-        send(MQTTSOC, msgbuf, sizeof(msgbuf));
-
-        HAL_Delay(2000);
-        if ((getSn_RX_RSR(0)) == 0) {
-
-        }
-        if (mqtt_decode_msg(msgbuf) != SUBACK) { //判断是不是SUBACK
-            printf("subscribe failed.. waiting retry.\r\n");
-        }
-        SUB_FLAG = 1;
-        printf("==== subscribe successed!! ====");
-            }
+    // 配置Sn_CR为CONNECT，并向TCP服务器发出连接请求
+    connect(mqtt_client->mqtt_sn, mqtt_client->mqtt_host, mqtt_client->mqtt_port);
 }
+
+void MQTT_Connect(mqtt_client_t* mqtt_client)
+{
+    memset(mqtt_client->mqtt_write_buf, 0, sizeof(mqtt_client->mqtt_write_buf));
+
+    /*拼接连接报文*/
+    make_con_msg( mqtt_client->mqtt_clientid,
+                  mqtt_client->mqtt_keepalive_interval,
+                  mqtt_client->mqtt_cleansession,
+                  mqtt_client->mqtt_username,
+                  mqtt_client->mqtt_password,
+                  mqtt_client->mqtt_write_buf,
+                  sizeof(mqtt_client->mqtt_write_buf));
+    send(mqtt_client->mqtt_sn, mqtt_client->mqtt_write_buf, sizeof(mqtt_client->mqtt_write_buf));
+
+    /* 回复报文超时判断 */
+    mqtt_wait_ack(mqtt_client, CONNACK, &htim2, 200);
+}
+
+void MQTT_Reconnect(mqtt_client_t* mqtt_client)
+{}
+
+void MQTT_Disconnect(mqtt_client_t* mqtt_client)
+{}
+
+void MQTT_Keepalive(mqtt_client_t* mqtt_client)
+{}
+
+void MQTT_Subscribe(mqtt_client_t* mqtt_client, const char* topic)
+{
+    memset(mqtt_client->mqtt_write_buf, 0, sizeof(mqtt_client->mqtt_write_buf));
+
+    /*MQTT拼接订阅报文*/
+    make_sub_msg(topic, mqtt_client->mqtt_write_buf, sizeof(mqtt_client->mqtt_write_buf));
+    send(mqtt_client->mqtt_sn, mqtt_client->mqtt_write_buf, sizeof(mqtt_client->mqtt_write_buf));
+
+    mqtt_wait_ack(mqtt_client, SUBACK, &htim2, 200);
+}
+
+void MQTT_Unsubscribe(mqtt_client_t* mqtt_client, const char* topic)
+{}
+
+void MQTT_Publish(mqtt_client_t* mqtt_client, const char* topic)
+{}

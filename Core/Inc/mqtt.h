@@ -13,15 +13,15 @@ typedef struct mqtt_client
     uint8_t*    mqtt_host;
     uint16_t    mqtt_port;
     uint8_t     mqtt_sn;
-    void*       mqtt_reconnect_data;
     uint8_t*    mqtt_read_buf;
     uint8_t*    mqtt_write_buf;
     uint16_t    mqtt_keepalive_interval;
     uint16_t    mqtt_packet_id;
+    uint16_t    mqtt_read_buf_len;
+    uint16_t    mqtt_write_buf_len;
     uint32_t    mqtt_will_flag : 1;
     uint32_t    mqtt_cleansession : 1;
     uint32_t    mqtt_ping_outstanding : 2;
-    uint32_t    mqtt_version : 4;
     uint32_t    mqtt_ack_handler_number : 24;
     uint32_t    mqtt_cmd_timeout;
     uint32_t    mqtt_reconnect_try_duration;
@@ -64,5 +64,13 @@ extern uint8_t server_ip[4];
 extern uint8_t buffer[2048];
 extern uint8_t msgbuf[1024];
 
+void MQTT_Init(mqtt_client_t* mqtt_client);
+void MQTT_Reconnect(mqtt_client_t* mqtt_client);
+void MQTT_Disconnect(mqtt_client_t* mqtt_client);
+void MQTT_Keepalive(mqtt_client_t* mqtt_client);
+void MQTT_Subscribe(mqtt_client_t* mqtt_client, const char* topic);
+void MQTT_Unsubscribe(mqtt_client_t* mqtt_client, const char* topic);
+void MQTT_Publish(mqtt_client_t* mqtt_client, const char* topic, uint8_t* msgbuf);
+void MQTT_Receivehandle(mqtt_client_t* mqtt_client);
 
 #endif

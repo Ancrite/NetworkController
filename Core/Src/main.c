@@ -69,6 +69,8 @@ userparameter_t user_config;
 /*配置参数有效标志*/
 uint8_t config_valid_flag = 0;
 
+mqtt_client_t client1;
+
 Computer_Port_t computer_port[PCPORTCOUNT];
 /* USER CODE END PV */
 
@@ -139,7 +141,7 @@ int main(void)
 
     /* Network initialization */
     NET_Init();
-
+    MQTT_Init(&client1);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -148,8 +150,10 @@ int main(void)
         /* SOCKET0：UDP */
         NET_Setting_ServerDaemon(SOC_SETTING);
 
-        MQTT_Connect();
-        AT_CMD_Parse(msgbuf,sizeof(msgbuf));
+        MQTT_Reconnect(&client1);
+        MQTT_Keepalive(&client1);
+        MQTT_Receivehandle(&client1);
+        AT_CMD_Parse(msgbuf, sizeof(msgbuf));
 
         // Computer_PowerChange();
         // Projector_PowerChange();

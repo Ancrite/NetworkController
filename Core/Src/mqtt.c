@@ -16,7 +16,6 @@ uint8_t  msgbuf[1024];
 
 uint8_t CONNECT_FLAG = 0;
 uint8_t SUB_FLAG = 0;
-MQTTString receivedTopic;
 int count = 0;
 
 static void make_con_msg(char* clientID, int keepalive, uint8_t cleansession, char* username, char* password, unsigned char* buf, int buflen)
@@ -103,26 +102,30 @@ void MQTT_Init(mqtt_client_t* mqtt_client)
     connect(mqtt_client->mqtt_sn, mqtt_client->mqtt_host, mqtt_client->mqtt_port);
 }
 
-void MQTT_Connect(mqtt_client_t* mqtt_client)
-{
-    memset(mqtt_client->mqtt_write_buf, 0, sizeof(mqtt_client->mqtt_write_buf));
-
-    /*拼接连接报文*/
-    make_con_msg( mqtt_client->mqtt_clientid,
-                  mqtt_client->mqtt_keepalive_interval,
-                  mqtt_client->mqtt_cleansession,
-                  mqtt_client->mqtt_username,
-                  mqtt_client->mqtt_password,
-                  mqtt_client->mqtt_write_buf,
-                  sizeof(mqtt_client->mqtt_write_buf));
-    send(mqtt_client->mqtt_sn, mqtt_client->mqtt_write_buf, sizeof(mqtt_client->mqtt_write_buf));
-
-    /* 回复报文超时判断 */
-    mqtt_wait_ack(mqtt_client, CONNACK, &htim2, 200);
-}
-
 void MQTT_Reconnect(mqtt_client_t* mqtt_client)
-{}
+{
+    while (!CONNECT_FLAG)
+    {
+        CONNECT_FLAG = 0;
+        SUB_FLAG = 0;
+        memset(mqtt_client->mqtt_write_buf, 0, mqtt_client->mqtt_write_buf_len);
+
+        /*拼接连接报文*/
+        make_con_msg(   mqtt_client->mqtt_clientid,
+                        mqtt_client->mqtt_keepalive_interval,
+                        mqtt_client->mqtt_cleansession,
+                        mqtt_client->mqtt_username,
+                        mqtt_client->mqtt_password,
+                        mqtt_client->mqtt_write_buf,
+                        mqtt_client->mqtt_write_buf_len);
+        send(mqtt_client->mqtt_sn, mqtt_client->mqtt_write_buf, mqtt_client->mqtt_write_buf_len);
+
+        /* 回复报文超时判断 */
+        if (mqtt_wait_ack(mqtt_client, CONNACK, &htim2, 200) == 0) {
+            CONNECT_FLAG = 1;
+        }
+    }
+}
 
 void MQTT_Disconnect(mqtt_client_t* mqtt_client)
 {}
@@ -132,17 +135,65 @@ void MQTT_Keepalive(mqtt_client_t* mqtt_client)
 
 void MQTT_Subscribe(mqtt_client_t* mqtt_client, const char* topic)
 {
-    memset(mqtt_client->mqtt_write_buf, 0, sizeof(mqtt_client->mqtt_write_buf));
+    memset(mqtt_client->mqtt_write_buf, 0, mqtt_client->mqtt_write_buf_len);
 
     /*MQTT拼接订阅报文*/
-    make_sub_msg(topic, mqtt_client->mqtt_write_buf, sizeof(mqtt_client->mqtt_write_buf));
+    make_sub_msg((char*)topic, mqtt_client->mqtt_write_buf, sizeof(mqtt_client->mqtt_write_buf));
     send(mqtt_client->mqtt_sn, mqtt_client->mqtt_write_buf, sizeof(mqtt_client->mqtt_write_buf));
 
-    mqtt_wait_ack(mqtt_client, SUBACK, &htim2, 200);
+    if (!mqtt_wait_ack(mqtt_client, SUBACK, &htim2, 200))
+        SUB_FLAG = 1;
 }
 
 void MQTT_Unsubscribe(mqtt_client_t* mqtt_client, const char* topic)
 {}
 
-void MQTT_Publish(mqtt_client_t* mqtt_client, const char* topic)
-{}
+void MQTT_Publish(mqtt_client_t* mqtt_client, const char* topic, uint8_t* msgbuf)
+{
+}
+
+void MQTT_Receivehandle(mqtt_client_t* mqtt_client)
+{
+    int len;
+    unsigned char dup;
+    int qos;
+    MQTTString receivedTopic;
+    unsigned char retained;
+    unsigned char* payload;
+    int payloadlen;
+    if ((len = getSn_RX_RSR(mqtt_client->mqtt_sn)) > 0) {
+        recv(mqtt_client->mqtt_sn, mqtt_client->mqtt_read_buf, len);
+        if (PUBLISH == mqtt_decode_msg(mqtt_client->mqtt_read_buf)) {
+            MQTTDeserialize_publish(&dup,
+                                    &qos,
+                                    &retained,
+                                    &mqtt_client->mqtt_packet_id,
+                                    &receivedTopic,
+                                    &payload,
+                                    &payloadlen,
+                                    mqtt_client->mqtt_read_buf,
+                                    len);
+            strncpy((char*)msgbuf, (const char*)payload, payloadlen);
+        }
+        else if (PINGRESP == mqtt_decode_msg(mqtt_client->mqtt_read_buf)) {
+            if (len > 2) {
+                if (PUBLISH == mqtt_decode_msg(mqtt_client->mqtt_read_buf + 2)) {
+                    printf("publish\r\n");
+                    MQTTDeserialize_publish(&dup,
+                                            &qos,
+                                            &retained,
+                                            &mqtt_client->mqtt_packet_id,
+                                            &receivedTopic,
+                                            &payload,
+                                            &payloadlen,
+                                            mqtt_client->mqtt_read_buf + 2,
+                                            len - 2);
+                    strncpy((char*)msgbuf, (const char*)payload, payloadlen);
+                }
+            }
+        }
+        else {
+            printf("wait publish\r\n");
+        }
+    }
+}

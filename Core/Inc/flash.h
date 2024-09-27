@@ -5,7 +5,6 @@
 
 #define FLASH_STARTADDR         0x08000000U          /* ARM Cortex 架构中 FLASH 的起始地址 */
 #define FLASH_SIZE              0x80000U             /* MCU FLASH 总大小 */
-#define FLASH_PAGESIZE          (FLASH_SIZE / 256)   /* 2Kbytes per page */
 
 #define USERPARAMETER_PAGE      50
 

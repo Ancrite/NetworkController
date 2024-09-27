@@ -9,14 +9,10 @@ const char* AT_Handle_test(unsigned char *p, unsigned char len)
 }
 
 const char* AT_Computer_PowerON(unsigned char* p, unsigned char len)
-{
-    ;
-}
+{}
 
 const char* AT_Computer_PowerOFF(unsigned char* p, unsigned char len)
-{
-    ;
-}
+{}
 
 /* AT指令表 */
 const AT_CmdTypeDef at_cmd_index[] = {

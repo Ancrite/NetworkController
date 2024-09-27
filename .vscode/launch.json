@@ -12,11 +12,11 @@
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug",
-            "executable": "e:/Projects/NetworkController/programs/NetworkController_beta/.pio/build/genericSTM32F103VC/firmware.elf",
+            "executable": "D:/Development/NetworkController/NetworkController_beta/.pio/build/genericSTM32F103VC/firmware.elf",
             "projectEnvName": "genericSTM32F103VC",
-            "toolchainBinDir": "C:/Users/Administrator/.platformio/packages/toolchain-gccarmnoneeabi/bin",
+            "toolchainBinDir": "C:/Users/sgh/.platformio/packages/toolchain-gccarmnoneeabi/bin",
             "internalConsoleOptions": "openOnSessionStart",
-            "svdPath": "C:/Users/Administrator/.platformio/platforms/ststm32/misc/svd/STM32F103xx.svd",
+            "svdPath": "C:/Users/sgh/.platformio/platforms/ststm32/misc/svd/STM32F103xx.svd",
             "preLaunchTask": {
                 "type": "PlatformIO",
                 "task": "Pre-Debug"
@@ -26,21 +26,21 @@
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug (skip Pre-Debug)",
-            "executable": "e:/Projects/NetworkController/programs/NetworkController_beta/.pio/build/genericSTM32F103VC/firmware.elf",
+            "executable": "D:/Development/NetworkController/NetworkController_beta/.pio/build/genericSTM32F103VC/firmware.elf",
             "projectEnvName": "genericSTM32F103VC",
-            "toolchainBinDir": "C:/Users/Administrator/.platformio/packages/toolchain-gccarmnoneeabi/bin",
+            "toolchainBinDir": "C:/Users/sgh/.platformio/packages/toolchain-gccarmnoneeabi/bin",
             "internalConsoleOptions": "openOnSessionStart",
-            "svdPath": "C:/Users/Administrator/.platformio/platforms/ststm32/misc/svd/STM32F103xx.svd"
+            "svdPath": "C:/Users/sgh/.platformio/platforms/ststm32/misc/svd/STM32F103xx.svd"
         },
         {
             "type": "platformio-debug",
             "request": "launch",
             "name": "PIO Debug (without uploading)",
-            "executable": "e:/Projects/NetworkController/programs/NetworkController_beta/.pio/build/genericSTM32F103VC/firmware.elf",
+            "executable": "D:/Development/NetworkController/NetworkController_beta/.pio/build/genericSTM32F103VC/firmware.elf",
             "projectEnvName": "genericSTM32F103VC",
-            "toolchainBinDir": "C:/Users/Administrator/.platformio/packages/toolchain-gccarmnoneeabi/bin",
+            "toolchainBinDir": "C:/Users/sgh/.platformio/packages/toolchain-gccarmnoneeabi/bin",
             "internalConsoleOptions": "openOnSessionStart",
-            "svdPath": "C:/Users/Administrator/.platformio/platforms/ststm32/misc/svd/STM32F103xx.svd",
+            "svdPath": "C:/Users/sgh/.platformio/platforms/ststm32/misc/svd/STM32F103xx.svd",
             "loadMode": "manual"
         }
     ]

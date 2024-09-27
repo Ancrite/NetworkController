@@ -9,18 +9,13 @@
 
 uint8_t  TCP_DIP[4] = { 192,168,50,27 };
 uint16_t TCP_DPort = 4211;
-#ifdef MULTICAST
-uint8_t DIP[4] = { 255,255,255,255 };
-uint8_t DHAR[6] = { 0x01,0x00,0x5e,0xff,0xff,0xff };
-uint16_t DPORT = 8000;
-#endif
 
 void NET_Init(void)
 {
     uint8_t  memsize[2][8] = { {2,2,2,2,2,2,2,2},{2,2,2,2,2,2,2,2} };
-    uint8_t  tmp;
-    uint8_t  tmpstr[6];
+    //uint8_t  tmp;
     uint32_t macHigh, macLow;
+    uint8_t  tmpstr[6];
 
     //socket buffer init
     if (ctlwizchip(CW_INIT_WIZCHIP, (void*)memsize) == -1) {
@@ -29,11 +24,11 @@ void NET_Init(void)
     }
 
     //phy link status check
-    do {
-        if (ctlwizchip(CW_GET_PHYLINK, (void*)&tmp) == -1) {
-            printf("Unknown PHY Link stauts.\r\n");
-        }
-    } while (tmp == PHY_LINK_OFF);
+    // do {
+    //     if (ctlwizchip(CW_GET_PHYLINK, (void*)&tmp) == -1) {
+    //         printf("Unknown PHY Link stauts.\r\n");
+    //     }
+    // } while (tmp == PHY_LINK_OFF);
 
     //IPv4 Initialized.
     srand((unsigned int)HAL_GetUIDw0);
@@ -66,34 +61,46 @@ void NET_Init(void)
 #endif
 }
 
-void NET_UDP_ServerDaemon(userparameter_t* local_config)
+static void NET_UDP_ServerDaemon(uint8_t sn, userparameter_t* local_config)
 {
-    uint8_t udp_ip[4] = { 255,255,255,255 };
-    uint16_t udp_port;
-    int16_t recvlen = 0;
+    uint8_t  setting_ip[4];
+    uint16_t setting_port;
+    uint8_t  udp_ip[4] = { 255,255,255,255 };
+    uint16_t udp_port = 50900;
+    int16_t  recvlen = 0;
     /* 接收到数据包 */
     if ((recvlen = getSn_RX_RSR(0)) > 0) {
+        const char* tag = "hi module";
         memset(gDATABUF, 0, recvlen + 1);
-        recvfrom(0, gDATABUF, recvlen, udp_ip, &udp_port);
+        recvfrom(0, gDATABUF, recvlen, setting_ip, &setting_port);
 
-        /* 另存为pbuf格式 */
-        pbuf* recvbuf = (pbuf *)malloc(sizeof(pbuf));
-        clib_memcpy((uint8_t*)recvbuf, gDATABUF, sizeof(pbuf), 0);
+        /* 响应 “搜索/刷新”('hi module') */
+        if (clib_memcmp((uint8_t*)gDATABUF, (uint8_t*)tag, strlen(tag))) {
 
-        /* 响应上传参数 */
-        if (recvbuf->tot_len == sizeof(userparameter_t) && clib_memcmp(gWIZNETINFO.mac, (uint8_t*)recvbuf->payload, 6)) {
-            userparameter_t tmp_config;
+            /* 回显数据包中写入当前MAC地址和CRC校验值 */
+            if (!config_valid_flag) {
+                clib_memcpy((uint8_t*)local_config, (uint8_t*)gWIZNETINFO.mac, 6, 0);
+                local_config->crc = clib_crc_8((uint8_t*)local_config, sizeof(userparameter_t) - 1);
+            }
+
+            /* 当前参数回环显示 */
+            sendto(sn, (uint8_t*)local_config, sizeof(userparameter_t), udp_ip, udp_port);
+        }
+
+        /* 响应 “上传参数” */
+        if (clib_memcmp(gWIZNETINFO.mac, (uint8_t*)gDATABUF, 6)) {
+            userparameter_t flash_config;
 
             /* 将包含新的参数的数据包拷贝到临时变量中并校验 */
-            clib_memcpy((uint8_t*)&tmp_config, (uint8_t*)recvbuf->payload, sizeof(userparameter_t), 0);
-            if (tmp_config.crc != clib_crc_8((uint8_t*)&tmp_config, sizeof(userparameter_t) - 1)) {
+            clib_memcpy((uint8_t*)&flash_config, (uint8_t*)gDATABUF, sizeof(userparameter_t), 0);
+            if (flash_config.crc != clib_crc_8((uint8_t*)&flash_config, sizeof(userparameter_t) - 1)) {
                 return;
             }
+
             /* 将新的配置参数写入 FLASH */
-            if (BSP_FLASH_SetUserParameters(&tmp_config)) {
+            if (BSP_FLASH_SetUserParameters(&flash_config)) {
                 printf("[ %s, %d ] fail to configurate the new parameters.", __FILE__, __LINE__);
             }
-            free(recvbuf);
 
             printf("success to config the new parameters.\n");
             printf("Prepare to reboot the MCU, Please wait a minute..... ^_^\n");
@@ -101,55 +108,38 @@ void NET_UDP_ServerDaemon(userparameter_t* local_config)
             __ASM volatile ("cpsid i");
             HAL_NVIC_SystemReset();
         }
-
-        const char* tag = "hi module";
-        /* 响应 'hi module' */
-        if (recvbuf->tot_len == strlen(tag) && clib_memcmp((uint8_t*)recvbuf->payload, (uint8_t*)tag, strlen(tag))) {
-            // pbuf* reply = (pbuf *)malloc(sizeof(pbuf));
-            // if (reply == NULL) {
-            //     printf("[ %s, %d ]pbuf allocation failure.\n", __FILE__, __LINE__);
-            // }
-
-            /* 更改配置参数前更新校验值 */
-            if (!config_valid_flag) {
-                clib_memcpy((uint8_t*)local_config, (uint8_t*)gWIZNETINFO.mac, 6, 0);
-                local_config->crc = clib_crc_8((uint8_t*)local_config, sizeof(userparameter_t) - 1);
-            }
-            /* 当前参数回环显示 */
-            // clib_memcpy((uint8_t*)reply->payload, (uint8_t*)local_config, sizeof(userparameter_t), 0);
-            sendto(0, (uint8_t*)local_config, sizeof(userparameter_t), udp_ip, udp_port);
-
-            free(recvbuf);
-            // free(reply);
-        }
     }
 }
 
 void NET_Setting_ServerDaemon(uint8_t sn)
 {
     switch (getSn_SR(sn)) {
-        case SOCK_UDP:                               // Socket处于初始化完成(打开)状态
-            HAL_Delay(100);
-            NET_UDP_ServerDaemon(&user_config);
-        case SOCK_CLOSED:                            // Socket处于关闭状态
-            socket(sn, Sn_MR_UDP, 8000, 0x00);
-            break;
+    case SOCK_UDP:                               // Socket处于初始化完成(打开)状态
+        HAL_Delay(100);
+        // if (getSn_IR(0) & Sn_IR_RECV){
+        //     setSn_IR(0, Sn_IR_RECV);             // Sn_IR的RECV位置1
+        // }
+        NET_UDP_ServerDaemon(sn, &user_config);
+        break;
+    case SOCK_CLOSED:                            // Socket处于关闭状态
+        socket(sn, Sn_MR_UDP, 8000, 0x00);
+        break;
     }
 }
 
 void NET_TCP_ClientDaemon(uint8_t sn)
 {
     switch (getSn_SR(sn)) {
-        case SOCK_INIT:    //TCP初始化
-            connect(sn, TCP_DIP, TCP_DPort);
-            break;
-        case SOCK_ESTABLISHED:
-            break;
-        case SOCK_CLOSE_WAIT:   //等待关闭
-            disconnect(sn);
-            break;
-        case SOCK_CLOSED:   //打开本地端口
-            socket(sn, Sn_MR_TCP, 1126, 0x00);
-            break;
+    case SOCK_INIT:    //TCP初始化
+        connect(sn, TCP_DIP, TCP_DPort);
+        break;
+    case SOCK_ESTABLISHED:
+        break;
+    case SOCK_CLOSE_WAIT:   //等待关闭
+        disconnect(sn);
+        break;
+    case SOCK_CLOSED:   //打开本地端口
+        socket(sn, Sn_MR_TCP, 1126, 0x00);
+        break;
     }
 }

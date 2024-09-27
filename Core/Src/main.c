@@ -57,6 +57,7 @@
 /* USER CODE BEGIN PV */
 uint8_t     gDATABUF[DATA_BUF_SIZE];
 
+/*默认网络参数*/
 wiz_NetInfo gWIZNETINFO = { .mac = {0,0,0,0,0,0},
                             .ip = {192,168,50,248},
                             .sn = {255,255,255,0},
@@ -139,10 +140,10 @@ int main(void)
         clib_memcpy(gWIZNETINFO.ip, user_config.local_ipaddr, 4, 0);
         clib_memcpy(gWIZNETINFO.sn, user_config.local_netmask, 4, 0);
         clib_memcpy(gWIZNETINFO.gw, user_config.local_gwaddr, 4, 0);
-        BSP_USART_S2EConfig(&user_config);
+        // BSP_USART_S2EConfig(&user_config);  //串口配置
     }
 
-    /* Network initialization */
+    /* 网络初始化 */
     NET_Init();
     MQTT_Init(&client1);
   /* USER CODE END 2 */
@@ -154,6 +155,9 @@ int main(void)
         NET_Setting_ServerDaemon(SOC_SETTING);
 
         MQTT_Reconnect(&client1);
+        if (SUB_FLAG == 0) {
+            MQTT_Subscribe(&client1, "hb");
+        }
         MQTT_Keepalive(&client1);
         MQTT_Receivehandle(&client1);
         AT_CMD_Parse(msgbuf, sizeof(msgbuf));

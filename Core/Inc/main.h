@@ -67,6 +67,7 @@ extern userparameter_t user_config;
 extern uint8_t config_valid_flag;
 extern uint8_t gDATABUF[DATA_BUF_SIZE];
 extern wiz_NetInfo gWIZNETINFO;
+extern uint8_t SUB_FLAG;
 
 /* USER CODE END EM */
 

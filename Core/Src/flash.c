@@ -20,16 +20,16 @@ void BSP_FLASH_WriteData(uint32_t address, uint16_t* pbuf, uint16_t length)
 uint8_t BSP_FLASH_WritePages(uint32_t address, uint8_t* pbuf, uint32_t length)
 {
     /* 影子数组，用于保存扇区原始数据 */
-    static uint8_t shadow_ram[FLASH_PAGESIZE];
+    static uint8_t shadow_ram[FLASH_PAGE_SIZE];
 
     /* 扇区编号 */
-    uint16_t page_number = (address - FLASH_STARTADDR) / FLASH_PAGESIZE;
+    uint16_t page_number = (address - FLASH_STARTADDR) / FLASH_PAGE_SIZE;
 
     /* 扇区内偏移量(字节) */
-    uint32_t page_offset = ((address - FLASH_STARTADDR) % FLASH_PAGESIZE);
+    uint32_t page_offset = ((address - FLASH_STARTADDR) % FLASH_PAGE_SIZE);
 
     /* 扇区内剩余长度(字节) */
-    uint32_t page_remain_length = FLASH_PAGESIZE - page_offset;
+    uint32_t page_remain_length = FLASH_PAGE_SIZE - page_offset;
 
     /* HAL FLASH 擦除结构体*/
     FLASH_EraseInitTypeDef FLASH_EraseInitStruct;
@@ -47,12 +47,12 @@ uint8_t BSP_FLASH_WritePages(uint32_t address, uint8_t* pbuf, uint32_t length)
 
     while (1) {
         /* 保存原始数据 */
-        BSP_FLASH_ReadData(FLASH_STARTADDR + page_number * FLASH_PAGESIZE, shadow_ram, FLASH_PAGESIZE);
+        BSP_FLASH_ReadData(FLASH_STARTADDR + page_number * FLASH_PAGE_SIZE, shadow_ram, FLASH_PAGE_SIZE);
 
         /* 擦除扇区 */
         FLASH_EraseInitStruct.TypeErase = FLASH_TYPEERASE_PAGES;    // 选择页擦除
         FLASH_EraseInitStruct.NbPages = 1;
-        FLASH_EraseInitStruct.PageAddress = FLASH_STARTADDR + page_number * FLASH_PAGESIZE;  // 要擦除的扇区
+        FLASH_EraseInitStruct.PageAddress = FLASH_STARTADDR + page_number * FLASH_PAGE_SIZE;  // 要擦除的扇区
         if (HAL_FLASHEx_Erase(&FLASH_EraseInitStruct, &erase_erraddr) != HAL_OK) {
             HAL_FLASH_Lock();
             return 2;
@@ -62,7 +62,7 @@ uint8_t BSP_FLASH_WritePages(uint32_t address, uint8_t* pbuf, uint32_t length)
         for (uint32_t i = 0; i < page_remain_length; i++) {
             shadow_ram[page_offset + i] = pbuf[i];
         }
-        BSP_FLASH_WriteData(FLASH_STARTADDR + page_number * FLASH_PAGESIZE, (uint16_t *)shadow_ram, FLASH_PAGESIZE / 2);
+        BSP_FLASH_WriteData(FLASH_STARTADDR + page_number * FLASH_PAGE_SIZE, (uint16_t *)shadow_ram, FLASH_PAGE_SIZE / 2);
 
         /* 写入结束了 */
         if (length <= page_remain_length) {
@@ -74,7 +74,7 @@ uint8_t BSP_FLASH_WritePages(uint32_t address, uint8_t* pbuf, uint32_t length)
             page_offset = 0;                            /* 扇区偏移置0 */
             pbuf   += page_remain_length;               /* 数据指针偏移 */
             length -= page_remain_length;               /* 剩余数据递减 */
-            page_remain_length = FLASH_PAGESIZE;
+            page_remain_length = FLASH_PAGE_SIZE;
         }
     }
 
@@ -86,7 +86,7 @@ uint8_t BSP_FLASH_WritePages(uint32_t address, uint8_t* pbuf, uint32_t length)
 
 void BSP_FLASH_GetUserParameters(userparameter_t* info)
 {
-    BSP_FLASH_ReadData((FLASH_STARTADDR + USERPARAMETER_PAGE * FLASH_PAGESIZE),
+    BSP_FLASH_ReadData((FLASH_STARTADDR + USERPARAMETER_PAGE * FLASH_PAGE_SIZE),
                    (uint8_t*)info,
                    sizeof(userparameter_t));
 }

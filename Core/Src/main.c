@@ -28,13 +28,13 @@
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
 #include <string.h>
-#include "relay.h"
+#include <errno.h>
 #include "flash.h"
 #include "clib.h"
-#include "net.h"
+#include "network.h"
 #include "mqtt.h"
-#include "control.h"
 #include "at.h"
+#include "control.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -55,25 +55,15 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-uint8_t     gDATABUF[DATA_BUF_SIZE];
+mqtt_client_t mqtt_client1;
 
-/*默认网络参数*/
-wiz_NetInfo gWIZNETINFO = { .mac = {0,0,0,0,0,0},
-                            .ip = {192,168,50,248},
-                            .sn = {255,255,255,0},
-                            .gw = {192,168,50,1},
-                            .dns = {8,8,8,8},
-                            .dhcp = NETINFO_STATIC };
-
+#ifndef DHCP_CONF
 /*用户配置参数*/
 userparameter_t user_config;
 
 /*配置参数有效标志*/
-uint8_t config_valid_flag = 0;
-
-mqtt_client_t client1;
-
-Computer_Port_t computer_port[PCPORTCOUNT];
+uint8_t user_valid_flag = 0;
+#endif
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -84,7 +74,18 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+int _write(int file, char* data, int len)
+{
+    if ((file != STDOUT_FILENO) && (file != STDERR_FILENO)) {
+        errno = EBADF;
+        return -1;
+    }
+    // arbitrary timeout 1000
+    HAL_StatusTypeDef status =
+        HAL_UART_Transmit(&huart1, (uint8_t*)data, len, 1000);
+    // return # of bytes written - as best we can tell
+    return (status == HAL_OK ? len : 0);
+}
 /* USER CODE END 0 */
 
 /**
@@ -93,6 +94,7 @@ void SystemClock_Config(void);
   */
 int main(void)
 {
+
   /* USER CODE BEGIN 1 */
 
   /* USER CODE END 1 */
@@ -121,49 +123,45 @@ int main(void)
   MX_SPI2_Init();
   MX_TIM3_Init();
   MX_UART4_Init();
-  MX_UART5_Init();
   MX_USART2_UART_Init();
   MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
 
     /* W5500库回调函数注册 */
-    reg_wizchip_cris_cbfunc(SPI_CrisEnter, SPI_CrisExit);       //注册临界区函数
-    reg_wizchip_cs_cbfunc(SPI_CS_Select, SPI_CS_Deselect);      //注册SPI片选信号函数
-    reg_wizchip_spi_cbfunc(SPI_Read_Byte, SPI_Write_Byte);      //注册读写函数
-
-    /* 获取存储的配置并校验有效性 */
-    BSP_FLASH_GetUserParameters(&user_config);
-    config_valid_flag = (user_config.crc == clib_crc_8((uint8_t*)&user_config, sizeof(userparameter_t) - 1)) ? 1 : 0;
-
-    /* 载入配置 */
-    if (config_valid_flag) {
-        clib_memcpy(gWIZNETINFO.ip, user_config.local_ipaddr, 4, 0);
-        clib_memcpy(gWIZNETINFO.sn, user_config.local_netmask, 4, 0);
-        clib_memcpy(gWIZNETINFO.gw, user_config.local_gwaddr, 4, 0);
-        // BSP_USART_S2EConfig(&user_config);  //串口配置
-    }
-
+    Wizchip_Callback_Init();
+#ifdef USER_CONF
+    /* 用户网络参数配置 */
+    // Network_UserConfig_Init();
+#endif
     /* 网络初始化 */
-    NET_Init();
-    MQTT_Init(&client1);
+    Network_Init();
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
     while (1) {
-        /* SOCKET0：UDP */
-        NET_Setting_ServerDaemon(SOC_SETTING);
-
-        MQTT_Reconnect(&client1);
-        if (SUB_FLAG == 0) {
-            MQTT_Subscribe(&client1, "hb");
+        if (PHY_LINK_ON == Network_PHYLink_Check()) {
+#ifdef DHCP_CONF
+            DHCP_ClientDaemon();
+#else
+            Network_UserConfig_SettingDaemon(SOC_SETTING, &user_config, user_valid_flag);
+#endif
+            if (1 == net_flag) {
+                if (SOCK_CLOSED == getSn_SR(SOC_MQTT)) {
+                    MQTT_Init(&mqtt_client1);
+                }
+                if (SOCK_ESTABLISHED == getSn_SR(SOC_MQTT)) {
+                    MQTT_ClientDaemon(&mqtt_client1);
+                    AT_CMD_Parse(at_buf, sizeof(at_buf));
+                }
+            }
         }
-        MQTT_Keepalive(&client1);
-        MQTT_Receivehandle(&client1);
-        AT_CMD_Parse(msgbuf, sizeof(msgbuf));
+        else {
+            net_flag = 0;
+        }
 
-        // Computer_PowerChange();
-        // Projector_PowerChange();
+        // Computer_Execute();
+        // Projector_Execute();
     }
     /* USER CODE END WHILE */
 

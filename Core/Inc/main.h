@@ -31,28 +31,11 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "socket.h"
-#include "control.h"
+
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
-
-#define DATA_BUF_SIZE   2048
-
-typedef struct
-{
-    uint8_t macaddr[6];
-    uint8_t target_ipaddr[4];
-    uint8_t target_port[2];
-    uint8_t local_mode;
-    uint8_t local_ipaddr[4];
-    uint8_t local_gwaddr[4];
-    uint8_t local_netmask[4];
-    uint8_t local_port[2];
-    uint8_t usart_para[4];
-    uint8_t crc;
-} __packed userparameter_t;
 
 /* USER CODE END ET */
 
@@ -63,11 +46,6 @@ typedef struct
 
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
-extern userparameter_t user_config;
-extern uint8_t config_valid_flag;
-extern uint8_t gDATABUF[DATA_BUF_SIZE];
-extern wiz_NetInfo gWIZNETINFO;
-extern uint8_t SUB_FLAG;
 
 /* USER CODE END EM */
 
@@ -107,27 +85,18 @@ void Error_Handler(void);
 #define W5500_RST_GPIO_Port GPIOC
 #define W5500_INTn_Pin GPIO_PIN_8
 #define W5500_INTn_GPIO_Port GPIOA
-#define USART8_TX_Pin GPIO_PIN_11
-#define USART8_TX_GPIO_Port GPIOA
-#define USART8_RX_Pin GPIO_PIN_12
-#define USART8_RX_GPIO_Port GPIOA
-#define USART7_TX_Pin GPIO_PIN_3
-#define USART7_TX_GPIO_Port GPIOD
-#define USART7_RX_Pin GPIO_PIN_4
-#define USART7_RX_GPIO_Port GPIOD
 #define W5500_PMODE0_Pin GPIO_PIN_5
 #define W5500_PMODE0_GPIO_Port GPIOB
 #define W5500_PMODE1_Pin GPIO_PIN_6
 #define W5500_PMODE1_GPIO_Port GPIOB
 #define W5500_PMODE2_Pin GPIO_PIN_7
 #define W5500_PMODE2_GPIO_Port GPIOB
-#define USART6_TX_Pin GPIO_PIN_8
-#define USART6_TX_GPIO_Port GPIOB
-#define USART6_RX_Pin GPIO_PIN_9
-#define USART6_RX_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
-#define INFO_OUTPUT
+#define STDIN_FILENO    0       /* standard input file descriptor */
+#define STDOUT_FILENO   1       /* standard output file descriptor */
+#define STDERR_FILENO   2       /* standard error file descriptor */
+
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

@@ -5,6 +5,17 @@
 
 #define COMPUTER   1
 #define PROJRCTOR  0
+#define RELAY1 0x01
+#define RELAY2 0x02
+#define RELAY3 0x04
+#define RELAY4 0x08
+#define RELAY5 0x10
+#define RELAY6 0x20
+#define RELAY7 0x40
+#define RELAY8 0x80
+
+void Relay_Pullin(uint8_t port);
+void Relay_Release(uint8_t port);
 
 #if COMPUTER
 
@@ -217,7 +228,7 @@ static uint8_t Sonnoc_off[] = { 0x23,0x30,0x30,0x30,0x30,0x20,0x30,0x0D };      
 
 #endif
 
-void Computer_PowerChange(void);
-void Projector_PowerChange(void);
+void Computer_Execute(void);
+void Projector_Execute(void);
 
 #endif

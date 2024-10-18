@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include <string.h>
 
+uint8_t at_buf[100] = { 0 };
 
 const char* AT_Handle_test(unsigned char *p, unsigned char len)
 {
@@ -9,10 +10,14 @@ const char* AT_Handle_test(unsigned char *p, unsigned char len)
 }
 
 const char* AT_Computer_PowerON(unsigned char* p, unsigned char len)
-{}
+{
+    return AT_CMD_OK;
+}
 
 const char* AT_Computer_PowerOFF(unsigned char* p, unsigned char len)
-{}
+{
+    return AT_CMD_OK;
+}
 
 /* AT指令表 */
 const AT_CmdTypeDef at_cmd_index[] = {

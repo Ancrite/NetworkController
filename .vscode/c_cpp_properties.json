@@ -9,9 +9,9 @@
             "name": "PlatformIO",
             "includePath": [
                 "D:/Development/NetworkController/NetworkController_beta",
-                "D:/Development/NetworkController/NetworkController_beta/lib/W5500",
                 "D:/Development/NetworkController/NetworkController_beta/lib/MQTT",
                 "D:/Development/NetworkController/NetworkController_beta/lib/myclib",
+                "D:/Development/NetworkController/NetworkController_beta/lib/ioLibrary",
                 "D:/Development/NetworkController/NetworkController_beta/Core/Inc",
                 "D:/Development/NetworkController/NetworkController_beta/include",
                 "C:/Users/sgh/.platformio/packages/framework-stm32cubef1/Drivers/CMSIS/Include",
@@ -67,9 +67,9 @@
                 "limitSymbolsToIncludedHeaders": true,
                 "path": [
                     "D:/Development/NetworkController/NetworkController_beta",
-                    "D:/Development/NetworkController/NetworkController_beta/lib/W5500",
                     "D:/Development/NetworkController/NetworkController_beta/lib/MQTT",
                     "D:/Development/NetworkController/NetworkController_beta/lib/myclib",
+                    "D:/Development/NetworkController/NetworkController_beta/lib/ioLibrary",
                     "D:/Development/NetworkController/NetworkController_beta/Core/Inc",
                     "D:/Development/NetworkController/NetworkController_beta/include",
                     "C:/Users/sgh/.platformio/packages/framework-stm32cubef1/Drivers/CMSIS/Include",

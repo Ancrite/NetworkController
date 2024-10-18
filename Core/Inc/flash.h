@@ -2,6 +2,7 @@
 #define __FLASH_H
 
 #include "main.h"
+#include "network.h"
 
 #define FLASH_STARTADDR         0x08000000U          /* ARM Cortex 架构中 FLASH 的起始地址 */
 #define FLASH_SIZE              0x80000U             /* MCU FLASH 总大小 */

@@ -1,6 +1,8 @@
 #ifndef __AT_H
 #define __AT_H
 
+#include "main.h"
+
 #define AT_CMD_OK               ("0") /* 指令正常 */
 #define AT_CMD_ERR              ("1") /* 指令异常 */
 #define AT_CMD_ERR_UNINVAIL     ("2") /* 没有对应指令 */
@@ -26,6 +28,8 @@ typedef struct
     const char* str;     /* 指令内容 */
     ATCallback  handle;  /* 指令执行 */
 }AT_CmdTypeDef;
+
+extern uint8_t at_buf[100];
 
 const char* AT_CMD_Parse(unsigned char* p, unsigned int len);
 

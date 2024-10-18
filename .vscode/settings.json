@@ -15,13 +15,14 @@
         "stm32f1xx_hal_conf.h": "c",
         "stm32f1xx_hal_flash.h": "c",
         "clib.h": "c",
-        "net.h": "c",
+        "network.h": "c",
         "interaction.h": "c",
         "relay.h": "c",
         "control.h": "c",
         "mqtt.h": "c",
         "mqttpacket.h": "c",
-        "at.h": "c"
+        "at.h": "c",
+        "syscall.h": "c"
     },
     "commentTranslate.hover.concise": true,
     "commentTranslate.hover.string": true,

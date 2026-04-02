@@ -29,7 +29,7 @@ extern "C" {
 #include "main.h"
 
 /* USER CODE BEGIN Includes */
-
+#include "network.h"
 /* USER CODE END Includes */
 
 extern UART_HandleTypeDef huart4;
@@ -60,4 +60,3 @@ void BSP_USART_S2EConfig(userparameter_t* config);
 #endif
 
 #endif /* __USART_H__ */
-
